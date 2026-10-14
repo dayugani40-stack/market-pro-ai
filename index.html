@@ -1,0 +1,164 @@
+<!doctype html><html lang="kn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Market Pro V16 • Live</title><style>*{box-sizing:border-box}body{margin:0;background:#081321;color:#e9f2ff;font:14px system-ui,Arial}header{background:#10243a;padding:17px 14px;border-bottom:1px solid #24435d}h1{font-size:22px;margin:0}main{max-width:1150px;margin:auto;padding:12px}.card{background:#102238;border:1px solid #25435c;border-radius:13px;padding:15px;margin:12px 0}h2{font-size:17px;margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}label{display:block;color:#abc5db;font-size:12px;margin-bottom:5px}select,button,input{font:inherit;max-width:100%}select{background:#091827;color:#fff;border:1px solid #45637a;padding:11px;border-radius:8px;width:100%}button{background:#13a37d;color:white;border:0;border-radius:8px;padding:11px 15px;font-weight:700;cursor:pointer}button.secondary{background:#294861}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px}.muted{color:#a9bed2}.price{font-size:28px;font-weight:800}.status{font-weight:700}.up{color:#39d9a1}.down{color:#ff747e}.wait{color:#ffcf72}#chartWrap{position:relative;width:100%;height:390px;touch-action:pan-y}canvas{display:block;width:100%;height:100%}.signals{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:10px}.signal{border:1px solid #34516a;background:#0b1a2c;padding:12px;border-radius:10px;line-height:1.9}.signal b{font-size:20px}table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:9px;border-bottom:1px solid #27415a}#details{overflow-x:auto}.notice{border-left:4px solid #ffcd65;padding:9px;background:#2c2a23}.small{font-size:12px}#errors{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body><header><h1>📈 Market Pro V16 · Live Market</h1><div class="muted">Live Market Analysis / ಲೈವ್ ಮಾರುಕಟ್ಟೆ ವಿಶ್ಲೇಷಣೆ · 5m / 15m / 1D</div></header><main><section class="card"><div class="grid"><div><label>Market / ಮಾರುಕಟ್ಟೆ</label><select id="market"><option value="Crypto">Crypto · LIVE</option><option value="Stocks">Indian Stocks · CSV only</option><option value="Forex">Forex · CSV only</option><option value="Indices">Indices · CSV only</option><option value="Commodities">Commodities · CSV only</option></select></div><div><label>Symbol / ಚಿಹ್ನೆ</label><select id="symbol"></select></div><div><label>Chart Timeframe / ಚಾರ್ಟ್ ಅವಧಿ</label><select id="tf"></select></div></div><div class="row"><button id="load">▶ Load Live Market / ಲೈವ್ ಡೇಟಾ</button><button class="secondary" id="retry">↻ Refresh / ರಿಫ್ರೆಶ್</button><label style="margin:0"><input type="checkbox" id="auto" checked> Auto REST backup / ಸ್ವಯಂ ನವೀಕರಣ (10s)</label></div><p id="status" class="muted" aria-live="polite">Live Data ಲೋಡ್ ಮಾಡಲು ಬಟನ್ ಒತ್ತಿ.</p><div class="grid"><div><label>Connection / ಸಂಪರ್ಕ</label><strong class="status" id="connection">OFFLINE</strong></div><div><label>Last Price / ಕೊನೆಯ ಬೆಲೆ</label><span class="price" id="price">—</span></div><div><label>Last Update / ನವೀಕರಣ</label><strong id="updated">—</strong></div><div><label>Candle Countdown / ಕ್ಯಾಂಡಲ್ ಸಮಯ</label><strong id="countdown">—</strong></div></div></section><section class="card"><h2>🟢🔴 Live Candlestick Chart / ಲೈವ್ ಚಾರ್ಟ್</h2><div id="chartWrap"><canvas id="chart"></canvas></div><div class="row"><button class="secondary" id="zoomIn">+ Zoom</button><button class="secondary" id="zoomOut">− Zoom</button><button class="secondary" id="reset">Reset</button><span class="muted small">Candles: <span id="count">0</span> · Green/Red = price movement</span></div></section><section class="card"><h2>🔮 Historical Analysis / ಐತಿಹಾಸಿಕ ವಿಶ್ಲೇಷಣೆ</h2><div id="signals" class="signals"></div><p class="muted small">Confirmed signals and targets remain fixed until each 5m / 15m / 1D period ends. Signals require trend, momentum and at least 6 of 9 indicator checks; WAIT is normal when conditions are weak. WAIT = insufficient confirmation or data. Signals are heuristic estimates, not reliable future-price predictions. Targets are ATR-based illustrations, not guaranteed outcomes.</p></section><section class="card"><h2>🔔 Target Alerts & Signal History / ಗುರಿ ಎಚ್ಚರಿಕೆ ಮತ್ತು ಇತಿಹಾಸ</h2><div class="row"><button id="notify" class="secondary">🔔 Enable Notifications / ಸೂಚನೆಗಳು</button><button id="clearHistory" class="secondary">Clear History / ಇತಿಹಾಸ ಅಳಿಸಿ</button><span class="muted small">Alerts work while this page is open; system notifications require browser permission and HTTPS.</span></div><div id="alertFeed" class="muted small" aria-live="polite">No alerts yet / ಇನ್ನೂ ಎಚ್ಚರಿಕೆಗಳಿಲ್ಲ.</div><div id="stats" class="row"></div><div style="overflow-x:auto"><table><thead><tr><th>Started</th><th>Symbol</th><th>Window</th><th>Side</th><th>Entry</th><th>SL</th><th>T1</th><th>T2</th><th>Outcome</th></tr></thead><tbody id="history"></tbody></table></div><p class="muted small">Outcomes use candle high/low and can be ambiguous when SL and a target touch in the same candle. History is stored on this device, not verified execution or profit.</p></section><section class="card"><h2>🔎 Advanced Confirmation / ಸುಧಾರಿತ ದೃಢೀಕರಣ: MACD · Supertrend · VWAP · Multi-Timeframe</h2><div id="details"><table><thead><tr><th>Indicator</th><th>5m</th><th>15m</th><th>1D</th></tr></thead><tbody id="indicators"></tbody></table></div></section><section class="card"><h2>🛠 Connection / ಸಂಪರ್ಕ Diagnostics</h2><div id="errors" class="muted small">No request made yet.</div><p class="muted small">If direct API works but embedded preview fails, host this index.html on an HTTPS website. Browser network policies can block requests from sandbox/file previews.</p><label>Historical CSV (timestamp,open,high,low,close,volume)</label><input type="file" id="csv" accept=".csv,text/csv"></section><p class="notice small">Live data is available for Binance public spot crypto pairs only. Other markets require a licensed market-data integration. No broker orders are placed. Always check exchange quotes and risk before trading.</p><section class="panel" style="margin-top:16px;padding:16px;border:1px solid #31536b;border-radius:12px;background:#10243a"><h2>🤖 Advanced AI Analysis · ಕನ್ನಡ + English</h2><p class="muted">Live indicators + multi-timeframe confirmation. AI ಸಲಹೆ ಮಾತ್ರ; fixed signal/target ಅನ್ನು AI ಬದಲಾಯಿಸುವುದಿಲ್ಲ.</p><label>AI Backend URL (Auto-connect / ಸ್ವಯಂ ಸಂಪರ್ಕ) <input id="aiUrl" type="url" placeholder="https://your-server.example.com" style="width:100%;padding:10px;margin:8px 0;background:#09192a;color:white;border:1px solid #52718b;border-radius:7px"></label><label for="aiLanguage">AI Response Language / AI ಉತ್ತರದ ಭಾಷೆ</label><select id="aiLanguage" style="max-width:290px;margin:8px 0 12px"><option value="both">ಕನ್ನಡ + English (Both)</option><option value="kn">ಕನ್ನಡ (Kannada)</option><option value="en">English</option></select><br><button id="aiRun" type="button" style="padding:10px 18px;background:#158c82;color:white;border:0;border-radius:8px">🤖 Analyze with AI / AI ವಿಶ್ಲೇಷಣೆ</button><p id="aiStatus" class="muted">AI backend status ಪರೀಕ್ಷಿಸಲಾಗುತ್ತಿದೆ / Checking AI backend…</p><div id="aiResult" style="white-space:pre-wrap;line-height:1.65"></div></section></main><script>
+'use strict';
+const $=id=>document.getElementById(id);
+const markets={Crypto:['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT','LINKUSDT'],Stocks:['RELIANCE','TCS','INFY','HDFCBANK'],Forex:['EURUSD','GBPUSD','USDJPY'],Indices:['NIFTY50','BANKNIFTY','SENSEX'],Commodities:['GOLD','SILVER','CRUDEOIL']};
+const frames=['1m','3m','5m','15m','30m','1h','2h','4h','1d','1w','1M'];for(const tf of frames){let o=document.createElement('option');o.value=tf;o.textContent=tf;$('tf').append(o)}$('tf').value='1m';
+function symbols(){let prev=$('symbol').value;$('symbol').replaceChildren();for(const s of markets[$('market').value]){let o=document.createElement('option');o.value=s;o.textContent=s;$('symbol').append(o)}if(markets[$('market').value].includes(prev))$('symbol').value=prev}symbols();
+const HISTORY_KEY='marketProV10History';
+let records=[];try{records=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');if(!Array.isArray(records))records=[]}catch(e){records=[]}
+let notified=new Set();
+function persist(){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(records.slice(-500)))}catch(e){}}
+function announce(msg){$('alertFeed').textContent=new Date().toLocaleTimeString()+' · '+msg+'\n'+$('alertFeed').textContent.slice(0,800);if('Notification'in window&&Notification.permission==='granted'&&document.visibilityState==='visible'){try{new Notification('Market Pro alert',{body:msg})}catch(e){}}}
+function recordKey(r){return [r.symbol,r.key,r.start].join(':')}
+function updateHistory(){let completed=records.filter(r=>r.outcome!=='OPEN'),hits=completed.filter(r=>['T1 HIT','T2 HIT'].includes(r.outcome)),loss=completed.filter(r=>r.outcome==='SL HIT'),unknown=completed.filter(r=>r.outcome==='AMBIGUOUS');$('stats').textContent=`Completed: ${completed.length} · Targets hit: ${hits.length} · SL hit: ${loss.length} · Ambiguous: ${unknown.length} · Hit rate (resolved): ${hits.length+loss.length?((100*hits.length/(hits.length+loss.length)).toFixed(1)+'%'):'—'}`;$('history').innerHTML=records.slice(-80).reverse().map(r=>`<tr><td>${new Date(r.start).toLocaleString()}</td><td>${r.symbol}</td><td>${r.key}</td><td>${r.sig}</td><td>${fmt(r.entry)}</td><td>${fmt(r.sl)}</td><td>${fmt(r.t1)}</td><td>${fmt(r.t2)}</td><td>${r.outcome}</td></tr>`).join('')}
+function checkOutcomes(){if(!candles.length)return;let changed=false,now=Date.now(),symbol=$('symbol').value;for(const r of records){if(r.outcome!=='OPEN'||r.symbol!==symbol||!['5m','15m','1D'].includes(r.key))continue;let bars=(r.key==='1D'?daily:candles).filter(b=>b.t>=r.created&&b.t<r.expires); // 1D bars are only usable when fully closed
+if(r.key==='1D')bars=bars.filter(b=>b.t+86400000<=now);
+let hit='';for(const b of bars){let sl=r.sig==='BUY'?b.l<=r.sl:b.h>=r.sl,t1=r.sig==='BUY'?b.h>=r.t1:b.l<=r.t1,t2=r.sig==='BUY'?b.h>=r.t2:b.l<=r.t2;if(sl&&(t1||t2)){hit='AMBIGUOUS';break}if(sl){hit='SL HIT';break}if(t2){hit='T2 HIT';break}if(t1){hit='T1 HIT';break}}
+if(hit){r.outcome=hit;changed=true;announce(`${r.symbol} ${r.key} ${r.sig}: ${hit}`)}else if(now>=r.expires){r.outcome=bars.length?'EXPIRED (no hit)':'EXPIRED (unverified)';changed=true}}
+if(changed){persist();updateHistory()}}
+$('notify').onclick=async()=>{if(!('Notification'in window))return announce('Browser notifications not supported');try{let result=await Notification.requestPermission();announce('Notification permission: '+result)}catch(e){announce('Notification permission unavailable')}};
+$('clearHistory').onclick=()=>{if(confirm('Clear saved signal history?')){records=[];persist();updateHistory()}};
+let fixedSignals={},activeSymbol="",candles=[],fiveBars=[],fifteenBars=[],daily=[],socket=null,timer=null,generation=0,busy=false,restBusy=false,lastTick=0,lastAnal=0,zoom=90,source='';
+const num=x=>Number(x),fmt=x=>Number.isFinite(x)?x.toLocaleString('en-US',{maximumFractionDigits:x<1?6:2}):'—';
+const parseBars=a=>{if(!Array.isArray(a)||!a.length)throw Error('No candle array returned');return a.map(x=>({t:num(x[0]),o:num(x[1]),h:num(x[2]),l:num(x[3]),c:num(x[4]),v:num(x[5])})).filter(x=>[x.t,x.o,x.h,x.l,x.c,x.v].every(Number.isFinite))};
+const hosts=['https://data-api.binance.vision','https://api.binance.com'];
+async function getBars(sym,interval,limit=350){let errs=[];for(const host of hosts){const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),9000);try{let params=new URLSearchParams({symbol:sym,interval,limit:String(limit)});const r=await fetch(host+'/api/v3/klines?'+params.toString(),{signal:controller.signal,cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const result=await r.json();if(!Array.isArray(result))throw Error(JSON.stringify(result));const bars=parseBars(result);if(bars.length<30)throw Error('Insufficient candles');return bars}catch(e){errs.push(host+': '+e.message)}finally{clearTimeout(timeout)}}throw Error(errs.join(' | '))}
+function stop(){checkOutcomes();fixedSignals={};generation++;if(socket){socket.onclose=null;socket.onerror=null;socket.close();socket=null}clearTimeout(timer);$('connection').textContent='OFFLINE'}
+function log(x){$('errors').textContent=x;console.log(x)}
+function state(x){$('connection').textContent=x;$('connection').className='status '+(x.includes('LIVE')?'up':x.includes('REST')?'wait':'down')}
+function price(){if(!candles.length)return;let c=candles.at(-1);$('price').textContent=fmt(c.c);$('updated').textContent=new Date().toLocaleTimeString();$('count').textContent=candles.length}
+async function load(){if(busy)return;if($('market').value!=='Crypto'){log('No live provider for this market. Upload a CSV instead.');$('status').textContent='Only Crypto has live API connection';return}stop();let gen=generation,sym=$('symbol').value,tf=$('tf').value;busy=true;state('LOADING');$('status').textContent='Fetching '+sym+' '+tf+' candles…';try{let results=await Promise.allSettled([getBars(sym,tf,tf==='1m'?1000:350),getBars(sym,'1d',180),getBars(sym,'5m',350),getBars(sym,'15m',350)]);if(gen!==generation)return;let a=results[0],d=results[1];if(a.status==='fulfilled'){candles=a.value;source='LIVE';price();render();connect(sym,tf,gen)}else{candles=[];state('OFFLINE')}if(d.status==='fulfilled')daily=d.value;else daily=[];fiveBars=results[2].status==='fulfilled'?results[2].value:[];fifteenBars=results[3].status==='fulfilled'?results[3].value:[];analysis();const issues=[a.status==='rejected'?'Chart: '+a.reason.message:'',d.status==='rejected'?'Daily: '+d.reason.message:''].filter(Boolean);log(issues.length?issues.join('\n'):'✓ Intraday + daily historical candles loaded from Binance API.');$('status').textContent=candles.length?'✓ Live historical candles loaded. Stream connecting; REST backup active.':'❌ Live data unavailable — see diagnostics below.'}catch(e){state('OFFLINE');log(e.stack||e.message)}finally{busy=false}}
+function connect(sym,tf,gen){try{let ws=new WebSocket('wss://data-stream.binance.vision:443/ws/'+sym.toLowerCase()+'@kline_'+tf);socket=ws;ws.onopen=()=>{if(gen===generation){state('● LIVE');lastTick=Date.now()}};ws.onmessage=e=>{if(gen!==generation)return;try{let k=JSON.parse(e.data).k;if(!k)return;const bar={t:num(k.t),o:num(k.o),h:num(k.h),l:num(k.l),c:num(k.c),v:num(k.v)};merge([bar]);lastTick=Date.now();state('● LIVE');price();render();if(Date.now()-lastAnal>15000||k.x){analysis();checkOutcomes();lastAnal=Date.now()}}catch(err){log('Stream message: '+err.message)}};ws.onerror=()=>{if(gen===generation){state('REST BACKUP');log('WebSocket unavailable; using REST backup')}};ws.onclose=()=>{if(gen!==generation)return;state('REST BACKUP');timer=setTimeout(()=>connect(sym,tf,gen),12000)}}catch(e){state('REST BACKUP');log('WebSocket: '+e.message)}}
+function merge(incoming){for(const b of incoming){if(!candles.length||b.t>candles.at(-1).t)candles.push(b);else if(b.t===candles.at(-1).t)candles[candles.length-1]=b}if(candles.length>500)candles=candles.slice(-500)}
+async function rest(){if(!$('auto').checked||!candles.length||restBusy||busy||$('market').value!=='Crypto')return;if(socket&&socket.readyState===1&&Date.now()-lastTick<12000)return;restBusy=true;const gen=generation,sym=$('symbol').value,tf=$('tf').value;try{const bars=await getBars(sym,tf,35);if(gen!==generation)return;merge(bars);state('● REST (10s)');price();render();analysis();checkOutcomes();log('✓ REST backup refreshed at '+new Date().toLocaleTimeString())}catch(e){state('OFFLINE');log('REST backup: '+e.message)}finally{restBusy=false}}
+setInterval(rest,10000);setInterval(()=>{if(!candles.length)return;let t=candles.at(-1).t;let minutes={'1m':1,'3m':3,'5m':5,'15m':15,'30m':30,'1h':60,'2h':120,'4h':240,'1d':1440,'1w':10080,'1M':43200}[$('tf').value];$('countdown').textContent=Math.max(0,Math.floor((t+minutes*60000-Date.now())/1000))+'s'},1000);
+const avg=a=>a.reduce((s,x)=>s+x,0)/a.length;function ema(a,n){if(a.length<n)return NaN;let x=avg(a.slice(0,n)),k=2/(n+1);for(let i=n;i<a.length;i++)x=a[i]*k+x*(1-k);return x}function rsi(a,n=14){if(a.length<n+1)return NaN;let u=0,d=0;for(let i=a.length-n;i<a.length;i++){let z=a[i]-a[i-1];u+=Math.max(z,0);d+=Math.max(-z,0)}return d===0?100:100-100/(1+u/d)}function atr(a,n=14){if(a.length<n+1)return NaN;let z=[];for(let i=a.length-n;i<a.length;i++)z.push(Math.max(a[i].h-a[i].l,Math.abs(a[i].h-a[i-1].c),Math.abs(a[i].l-a[i-1].c)));return avg(z)}
+function emaSeries(values,n){const out=[];let value=NaN;for(let i=0;i<values.length;i++){if(i===n-1)value=avg(values.slice(0,n));else if(i>=n)value=values[i]*2/(n+1)+value*(1-2/(n+1));out.push(value)}return out}
+function macd(a){const c=a.map(b=>b.c),f=emaSeries(c,12),slow=emaSeries(c,26),line=f.map((x,i)=>Number.isFinite(x)&&Number.isFinite(slow[i])?x-slow[i]:NaN),valid=line.filter(Number.isFinite),signal=emaSeries(valid,9);return {hist:valid.length>=9?valid.at(-1)-signal.at(-1):NaN,previous:valid.length>=10?valid.at(-2)-signal.at(-2):NaN}}
+function supertrend(a,period=10,mult=3){if(a.length<period+2)return {direction:0,value:NaN};let upper=NaN,lower=NaN,trend=1,line=NaN;for(let i=period;i<a.length;i++){const part=a.slice(i-period+1,i+1),trs=part.map((b,j)=>{const prev=a[i-period+j];return Math.max(b.h-b.l,Math.abs(b.h-prev.c),Math.abs(b.l-prev.c))}),band=avg(trs)*mult,mid=(a[i].h+a[i].l)/2,rawU=mid+band,rawL=mid-band;if(!Number.isFinite(upper)){upper=rawU;lower=rawL;trend=a[i].c>=mid?1:-1}else{const oldU=upper,oldL=lower;upper=rawU<oldU||a[i-1].c>oldU?rawU:oldU;lower=rawL>oldL||a[i-1].c<oldL?rawL:oldL;if(trend===-1&&a[i].c>oldU)trend=1;else if(trend===1&&a[i].c<oldL)trend=-1}line=trend===1?lower:upper}return {direction:trend,value:line}}
+function vwap(a){let pv=0,v=0;const day=a.at(-1)?.t; if(!day)return NaN;const key=new Date(day).toISOString().slice(0,10);for(let i=a.length-1;i>=0;i--){let b=a[i];if(new Date(b.t).toISOString().slice(0,10)!==key)break;pv+=(b.h+b.l+b.c)/3*b.v;v+=b.v}return v>0?pv/v:NaN}
+function estimate(a,label,higher=[]){
+ if(a.length<60)return {label,sig:'WAIT',reason:'Need at least 60 closed candles for MACD/Supertrend',methods:[]};
+ const closes=a.map(x=>x.c),p=closes.at(-1),e9=ema(closes,9),e21=ema(closes,21),r=rsi(closes),v=atr(a),prev=a.at(-2);
+ const support=Math.min(...a.slice(-21,-1).map(x=>x.l)),resist=Math.max(...a.slice(-21,-1).map(x=>x.h));
+ const volumeAvg=avg(a.slice(-21,-1).map(x=>x.v)),buyTrend=e9>e21&&p>e9,sellTrend=e9<e21&&p<e9;
+ const buyMomentum=p>closes.at(-6),sellMomentum=p<closes.at(-6),buyBreak=p>resist&&prev.c<=resist,sellBreak=p<support&&prev.c>=support,volOk=a.at(-1).v>=volumeAvg*1.15;
+ const m=macd(a),st=supertrend(a),vw=vwap(a),macdBuy=m.hist>0&&m.hist>=m.previous,macdSell=m.hist<0&&m.hist<=m.previous;
+ const higherTrend=higher.length>=15?supertrend(higher).direction:0;
+ const mtfBuy=higherTrend===1,mtfSell=higherTrend===-1;
+ // Daily VWAP is session based; avoid applying it as a strict daily signal filter.
+ const useVwap=label!=='Next 1 Day';const vwBuy=!useVwap||(Number.isFinite(vw)&&p>vw),vwSell=!useVwap||(Number.isFinite(vw)&&p<vw);
+ // Weighted confirmation: trend + momentum mandatory; breakout/volume are bonuses,
+ // not simultaneous hard gates (which almost never align on one closed candle).
+ const buyScore=[buyTrend,r>=52&&r<=78,macdBuy,st.direction===1,vwBuy,mtfBuy,buyMomentum,buyBreak,volOk].filter(Boolean).length;
+ const sellScore=[sellTrend,r<=48&&r>=22,macdSell,st.direction===-1,vwSell,mtfSell,sellMomentum,sellBreak,volOk].filter(Boolean).length;
+ const buy=buyTrend&&buyMomentum&&buyScore>=6&&buyScore>sellScore+1;
+ const sell=sellTrend&&sellMomentum&&sellScore>=6&&sellScore>buyScore+1;
+ const sig=buy?'BUY':sell?'SELL':'WAIT',entry=sig==='WAIT'?NaN:p,sl=buy?p-1.5*v:sell?p+1.5*v:NaN,t1=buy?p+2*v:sell?p-2*v:NaN,t2=buy?p+3*v:sell?p-3*v:NaN;
+ const checks=[['EMA trend',buyTrend?'BUY':sellTrend?'SELL':'NEUTRAL'],['RSI (14)',r.toFixed(1)],['MACD (12,26,9)',Number.isFinite(m.hist)?(m.hist>0?'Bullish ':'Bearish ')+fmt(m.hist):'Unavailable'],['Supertrend (10,3)',st.direction===1?'Bullish':st.direction===-1?'Bearish':'Unavailable'],['VWAP (UTC session)',useVwap?(Number.isFinite(vw)?fmt(vw)+(p>vw?' · Above':' · Below'):'Unavailable'):'Not used on 1D'],['Higher timeframe confirmation',higherTrend===1?'Bullish':higherTrend===-1?'Bearish':'Not enough higher-TF candles'],['Breakout',buyBreak?'UP':sellBreak?'DOWN':'NONE'],['Volume confirmation',volOk?'YES':'NO'],['ATR (14)',fmt(v)],['Support / Resistance',fmt(support)+' / '+fmt(resist)],['Momentum',buyMomentum?'Positive':sellMomentum?'Negative':'Flat'],['Confirmation score',`BUY ${buyScore}/9 · SELL ${sellScore}/9 (minimum 6)`]];
+ return {label,sig,entry,sl,t1,t2,methods:checks,reason:sig==='WAIT'?`WAIT: BUY ${buyScore}/9 · SELL ${sellScore}/9; needs trend + momentum + 6 checks`:`Indicator confirmation: ${sig==='BUY'?buyScore:sellScore}/9 on closed candles. Not a guarantee`};
+}
+function analysis(){
+  const sym=$('symbol').value, now=Date.now();
+  if(activeSymbol!==sym){activeSymbol=sym;fixedSignals={};}
+  const base=$('tf').value;
+  const five=fiveBars.length?fiveBars:(base==='1m'?group(candles,5):base==='5m'?candles:[]);
+  const fifteen=fifteenBars.length?fifteenBars:(base==='1m'?group(candles,15):base==='15m'?candles:[]);
+  // Fixed slots: 5m, 15m, UTC daily. Existing signals are not overwritten by ticks.
+  const inputs=[{key:'5m',ms:300000,data:five,higher:fifteen,label:'Next 5 Minutes'},
+    {key:'15m',ms:900000,data:fifteen,higher:daily,label:'Next 15 Minutes'},
+    {key:'1D',ms:86400000,data:daily,higher:group(daily,10080),label:'Next 1 Day'}];
+  const results=inputs.map(({key,ms,data,higher,label})=>{
+    const start=Math.floor(now/ms)*ms, expires=start+ms;
+    let previous=fixedSignals[key];
+    if(!previous || previous.start!==start || previous.sig==='WAIT'){
+      // Only confirmed, CLOSED candles are used to establish a new fixed signal.
+      const closed=data.filter(b=>b.t+ms<=now);
+      const higherMs=key==='5m'?900000:key==='15m'?86400000:604800000;
+      const higherClosed=higher.filter(b=>b.t+higherMs<=now);
+      const r=estimate(closed,label,higherClosed);
+      previous={...r,key,start,expires,created:now, symbol:sym};
+      fixedSignals[key]=previous;
+      if((r.sig==='BUY'||r.sig==='SELL')&&Number.isFinite(r.sl)&&source==='LIVE'&&!records.some(x=>recordKey(x)===recordKey(previous))){records.push({symbol:sym,key,start,expires,created:now,sig:r.sig,entry:r.entry,sl:r.sl,t1:r.t1,t2:r.t2,outcome:'OPEN'});records=records.slice(-500);persist();updateHistory()}
+    }
+    return previous;
+  });
+  checkOutcomes();
+  $('signals').innerHTML=results.map(r=>{
+    const remaining=Math.max(0,Math.ceil((r.expires-Date.now())/1000));
+    const hh=String(Math.floor(remaining/3600)).padStart(2,'0'),mm=String(Math.floor(remaining%3600/60)).padStart(2,'0'),ss=String(remaining%60).padStart(2,'0');
+    return `<div class="signal"><div class="muted">${r.label} · ${r.sig==='WAIT'?'AWAITING CONFIRMATION':'CONFIRMED · FIXED'}</div><b class="${r.sig==='BUY'?'up':r.sig==='SELL'?'down':'wait'}">${r.sig}</b><div>Entry: ${fmt(r.entry)}</div><div>Stop Loss: ${fmt(r.sl)}</div><div>Target 1: ${fmt(r.t1)}</div><div>Target 2: ${fmt(r.t2)}</div><div class="wait">Next target in: <strong class="lock-clock" data-end="${r.expires}">${hh}:${mm}:${ss}</strong></div><div class="muted small">Locked until ${new Date(r.expires).toLocaleString()} · ${r.reason}</div></div>`
+  }).join('');
+  let keys=['EMA trend','RSI (14)','MACD (12,26,9)','Supertrend (10,3)','VWAP (UTC session)','Higher timeframe confirmation','Breakout','Volume confirmation','ATR (14)','Support / Resistance','Momentum','Confirmation score'];
+  $('indicators').innerHTML=keys.map(k=>'<tr><td>'+k+'</td>'+results.map(r=>'<td>'+(r.methods.find(x=>x[0]===k)?.[1]||'—')+'</td>').join('')+'</tr>').join('');
+}
+// Update timers every second, but calculate a NEW signal only after the window expires.
+setInterval(()=>{
+  document.querySelectorAll('.lock-clock').forEach(el=>{
+    let n=Math.max(0,Math.ceil((Number(el.dataset.end)-Date.now())/1000));
+    el.textContent=[Math.floor(n/3600),Math.floor(n%3600/60),n%60].map(x=>String(x).padStart(2,'0')).join(':');
+  });
+  if(Object.values(fixedSignals).some(x=>Date.now()>=x.expires))analysis();
+  checkOutcomes();
+},1000);
+
+function group(a,n){let out=[],bucket=[];for(const b of a){let t=Math.floor(b.t/(n*60000))*n*60000;if(bucket.length&&bucket[0].t!==t){out.push({t:bucket[0].t,o:bucket[0].o,h:Math.max(...bucket.map(x=>x.h)),l:Math.min(...bucket.map(x=>x.l)),c:bucket.at(-1).c,v:bucket.reduce((s,x)=>s+x.v,0)});bucket=[]}bucket.push({...b,t})}if(bucket.length)out.push({t:bucket[0].t,o:bucket[0].o,h:Math.max(...bucket.map(x=>x.h)),l:Math.min(...bucket.map(x=>x.l)),c:bucket.at(-1).c,v:bucket.reduce((s,x)=>s+x.v,0)});return out}
+function render(){let c=$('chart'),rect=c.getBoundingClientRect(),w=Math.max(300,rect.width),h=Math.max(250,rect.height),dpr=window.devicePixelRatio||1;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);let ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.fillStyle='#09192a';ctx.fillRect(0,0,w,h);if(!candles.length){ctx.fillStyle='#adc4da';ctx.font='15px system-ui';ctx.fillText('Load Live Market to show candles',18,h/2);return}let a=candles.slice(-zoom),top=Math.max(...a.map(x=>x.h)),bottom=Math.min(...a.map(x=>x.l)),pad=(top-bottom)*.07||1;top+=pad;bottom-=pad;let plotW=w-77,plotH=h-45,volH=plotH*.17,priceH=plotH-volH-8;const y=p=>8+(top-p)/(top-bottom)*(priceH-14);ctx.strokeStyle='#244057';ctx.fillStyle='#9ab4c9';ctx.font='11px system-ui';for(let i=0;i<=5;i++){let yy=8+(priceH-14)*i/5;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(plotW,yy);ctx.stroke();ctx.fillText(fmt(top-(top-bottom)*i/5),plotW+5,yy+3)}let step=plotW/a.length,maxV=Math.max(...a.map(x=>x.v))||1;for(let i=0;i<a.length;i++){let b=a[i],x=i*step+step/2,green=b.c>=b.o;ctx.strokeStyle=green?'#25c89c':'#f06a78';ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(x,y(b.h));ctx.lineTo(x,y(b.l));ctx.stroke();let y1=y(Math.max(b.o,b.c)),y2=y(Math.min(b.o,b.c));ctx.fillRect(x-Math.max(1,step*.34),y1,Math.max(2,step*.68),Math.max(1,y2-y1));ctx.globalAlpha=.65;ctx.fillRect(x-Math.max(1,step*.34),priceH+8,Math.max(2,step*.68),volH*b.v/maxV);ctx.globalAlpha=1}let last=a.at(-1).c;ctx.strokeStyle='#e4d279';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(0,y(last));ctx.lineTo(plotW,y(last));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#e4d279';ctx.fillText(fmt(last),plotW+4,y(last)-5);ctx.fillStyle='#9ab4c9';for(let i=0;i<4;i++){let b=a[Math.min(a.length-1,Math.floor(i*(a.length-1)/3))];ctx.fillText(new Date(b.t).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}),Math.max(0,i*plotW/3-10),h-5)}}
+$('market').onchange=()=>{stop();candles=[];fiveBars=[];fifteenBars=[];daily=[];symbols();analysis();render();$('status').textContent='Select a symbol and load data.'};$('symbol').onchange=()=>{stop();candles=[];fiveBars=[];fifteenBars=[];daily=[];analysis();render()};$('tf').onchange=()=>{fixedSignals={};if($('market').value==='Crypto')load();else render()};$('load').onclick=load;$('retry').onclick=load;$('zoomIn').onclick=()=>{zoom=Math.max(20,zoom-20);render()};$('zoomOut').onclick=()=>{zoom=Math.min(350,zoom+20);render()};$('reset').onclick=()=>{zoom=90;render()};window.addEventListener('resize',render);
+$('csv').onchange=async e=>{let f=e.target.files[0];if(!f)return;stop();try{let lines=(await f.text()).trim().split(/\r?\n/),headers=lines.shift().toLowerCase().split(',').map(x=>x.trim()),idx=k=>headers.indexOf(k);if(['timestamp','open','high','low','close','volume'].some(x=>idx(x)<0))throw Error('CSV needs timestamp,open,high,low,close,volume');candles=lines.map(line=>{let z=line.split(',');return {t:Date.parse(z[idx('timestamp')]),o:num(z[idx('open')]),h:num(z[idx('high')]),l:num(z[idx('low')]),c:num(z[idx('close')]),v:num(z[idx('volume')])}}).filter(x=>[x.t,x.o,x.h,x.l,x.c,x.v].every(Number.isFinite)).sort((a,b)=>a.t-b.t);if(candles.length<40)throw Error('Need 40+ rows');daily=[];source='CSV';state('CSV (not live)');$('status').textContent='CSV loaded: '+candles.length+' candles';price();render();analysis()}catch(err){log(err.message)}};
+
+// V14: Optional server-side Gemini AI. No API secrets in the browser.
+const aiURL=$('aiUrl');
+const aiLanguage=$('aiLanguage');
+try{aiLanguage.value=localStorage.getItem('marketpro_ai_language')||'both'}catch(e){}
+aiLanguage.addEventListener('change',()=>{try{localStorage.setItem('marketpro_ai_language',aiLanguage.value)}catch(e){}});
+try{aiURL.value=localStorage.getItem('marketpro_ai_url')||((location.protocol==='https:'||location.protocol==='http:')?location.origin:'')}catch(e){}
+aiURL.addEventListener('change',()=>{try{localStorage.setItem('marketpro_ai_url',aiURL.value.trim())}catch(e){}});
+function aiSnapshot(){
+ const now=Date.now(),sym=$('symbol').value;
+ const result={symbol:sym,observedAt:new Date(now).toISOString(),language:aiLanguage.value,source,live:source==='LIVE',windows:[]};
+ for(const key of ['5m','15m','1D']){
+  const x=fixedSignals[key];if(!x)continue;
+  result.windows.push({timeframe:key,signal:x.sig,lockedUntil:new Date(x.expires).toISOString(),entry:Number.isFinite(x.entry)?x.entry:null,stopLoss:Number.isFinite(x.sl)?x.sl:null,target1:Number.isFinite(x.t1)?x.t1:null,target2:Number.isFinite(x.t2)?x.t2:null,reason:x.reason,indicators:Object.fromEntries(x.methods||[])});
+ }
+ return result;
+}
+function localKannadaAdvice(snapshot){
+ let out=[aiLanguage.value==='en'?'📊 Indicator-based analysis (not AI)':aiLanguage.value==='kn'?'📊 ಸೂಚಕ ಆಧಾರಿತ ವಿಶ್ಲೇಷಣೆ (AI ಅಲ್ಲ)':'📊 Indicator-based analysis / ಸೂಚಕ ಆಧಾರಿತ ವಿಶ್ಲೇಷಣೆ (not AI)'];
+ if(!snapshot.live)out.push('⚠️ Live data not verified / ಲೈವ್ ಡೇಟಾ ದೃಢಪಟ್ಟಿಲ್ಲ.');
+ for(const w of snapshot.windows){
+  const side=w.signal==='BUY'?'BUY / ಖರೀದಿ':w.signal==='SELL'?'SELL / ಮಾರಾಟ':'WAIT / ಕಾಯಿರಿ';
+  out.push(`\n${w.timeframe}: ${side} · ${w.signal==='WAIT'?'Insufficient confirmation / ದೃಢೀಕರಣ ಇಲ್ಲ':'Confirmed fixed signal / ದೃಢೀಕೃತ ಸ್ಥಿರ ಸಿಗ್ನಲ್'}`);
+  if(w.signal!=='WAIT')out.push(`Entry ${w.entry} · SL ${w.stopLoss} · T1 ${w.target1} · T2 ${w.target2} · ಅವಧಿ ${new Date(w.lockedUntil).toLocaleTimeString('en-IN')}`);
+  out.push(w.reason||'');
+ }
+ out.push('\n⚠️ Confirmation score is not win probability. / ದೃಢೀಕರಣ ಅಂಕ ಗೆಲುವಿನ ಖಾತರಿಯಲ್ಲ.');
+ return out.join('\n');
+}
+$('aiRun').onclick=async()=>{
+ const snapshot=aiSnapshot();$('aiResult').textContent=localKannadaAdvice(snapshot);
+ const endpoint=aiURL.value.trim().replace(/\/$/,'');
+ if(!endpoint){$('aiStatus').textContent='Backend URL ಇಲ್ಲ. Online deployment ಮಾಡಿ ಅಥವಾ HTTPS URL ನೀಡಿ.';return;}
+ if(!/^https:\/\//i.test(endpoint)&&!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(endpoint)){$('aiStatus').textContent='HTTPS backend URL ಮಾತ್ರ ಬಳಸಿ (localhost exception).';return;}
+ $('aiRun').disabled=true;$('aiStatus').textContent='Gemini AI ಉತ್ತರಕ್ಕಾಗಿ ಕಾಯುತ್ತಿದೆ...';
+ try{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),25000);
+  let response;try{response=await fetch(endpoint+'/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshot),signal:controller.signal})}finally{clearTimeout(timer)}
+  const json=await response.json();if(!response.ok)throw Error(json.error||'HTTP '+response.status);
+  if(typeof json.analysis!=='string')throw Error('Invalid AI response');
+  $('aiResult').textContent='🤖 Gemini AI Analysis / AI ವಿಶ್ಲೇಷಣೆ\n\n'+json.analysis+'\n\n🔒 Fixed BUY/SELL/WAIT, Entry, SL, Targets are unchanged.';
+  $('aiStatus').textContent='AI response received · '+new Date().toLocaleTimeString();
+ }catch(err){$('aiStatus').textContent='AI backend error: '+err.message+' · Local explanation shown.'}
+ finally{$('aiRun').disabled=false}
+};
+
+async function checkAIBackend(){
+ const endpoint=aiURL.value.trim().replace(/\/$/,'');
+ if(!endpoint){$('aiStatus').textContent='Backend not configured / Backend ಹೊಂದಿಸಿಲ್ಲ';return;}
+ try{const r=await fetch(endpoint+'/api/health',{signal:AbortSignal.timeout(7000)});const d=await r.json();$('aiStatus').textContent=d.ready?'🟢 AI backend ready / AI ಸಂಪರ್ಕ ಸಿದ್ಧ':'🟠 Backend online, Gemini key missing / API Key ಬೇಕು';}
+ catch(e){$('aiStatus').textContent='🔴 Backend unreachable / ಸಂಪರ್ಕ ಸಾಧ್ಯವಾಗಿಲ್ಲ: '+e.message;}
+}
+aiURL.addEventListener('change',checkAIBackend);
+checkAIBackend();
+analysis();render();updateHistory();
+</script></body></html>
