@@ -215,13 +215,13 @@ function analysis(){
 // V24: historical backtest. No external historical-performance claims.
 function runBacktest(){
  const tf=$('btFrame').value,ms={'5m':300000,'15m':900000,'1D':86400000}[tf];
- const base=tf==='5m'?fiveBars:tf==='15m'?fifteenBars:daily;
+ const base=tf==='5m'?(fiveBars.length?fiveBars:($('tf').value==='5m'?candles:[])):tf==='15m'?(fifteenBars.length?fifteenBars:($('tf').value==='15m'?candles:[])):(daily.length?daily:($('tf').value==='1d'?candles:[]));
  const bars=base.filter(b=>b.t+ms<=Date.now()).slice().sort((a,b)=>a.t-b.t);
  const higher=tf==='5m'?fifteenBars:tf==='15m'?daily:[];
  const hms=tf==='5m'?900000:86400000;
  const costs=Math.min(5,Math.max(0,Number($('btCosts').value)||0))/100;
  const root=$('btResults'),table=$('btTrades');table.replaceChildren();
- if(bars.length<100){root.textContent='⚠️ ಕನಿಷ್ಠ 100 closed '+tf+' candles ಬೇಕು. ಈಗ '+bars.length+' ಮಾತ್ರ ಇವೆ. ಹೆಚ್ಚಿನ historical candles ಬೇಕು.';return;}
+ if(bars.length<100){root.textContent='⚠️ '+tf+' Backtest: '+bars.length+' closed candles ಮಾತ್ರ ಲಭ್ಯ. ಮೊದಲು Load Live Market ಒತ್ತಿ. Chart candles: '+candles.length+' · 5m: '+fiveBars.length+' · 15m: '+fifteenBars.length+' · Daily: '+daily.length+'. Connection status: '+$('connection').textContent+'. ಅಗತ್ಯವಿದ್ದರೆ API/Network Diagnostics ನೋಡಿ.';return;}
  const trades=[];let candidateCount=0;
  // Non-overlapping trades, max 3 candles held. Signal based only on candles through i.
  for(let i=65;i<bars.length-4;i++){
@@ -233,6 +233,7 @@ function runBacktest(){
    if(!gate.ok)continue;
    const volatility=gate.vol,entry=bars[i+1].o;
    candidateCount++;
+   const bullish=r.sig==='BUY';
    const risk=1.5*volatility,sl=bullish?entry-risk:entry+risk,target=bullish?entry+3*volatility:entry-3*volatility;
    let exit=bars[i+3].c,why='TIME';
    for(let j=i+1;j<=i+3;j++){
