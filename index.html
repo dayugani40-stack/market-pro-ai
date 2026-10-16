@@ -92,7 +92,7 @@ function estimate(a,label,higher=[]){
  const volumeAvg=avg(a.slice(-21,-1).map(x=>x.v)),buyTrend=e9>e21&&p>e9,sellTrend=e9<e21&&p<e9;
  const buyMomentum=p>closes.at(-6),sellMomentum=p<closes.at(-6),buyBreak=p>resist&&prev.c<=resist,sellBreak=p<support&&prev.c>=support,volOk=a.at(-1).v>=volumeAvg*1.15;
  const m=macd(a),st=supertrend(a),vw=vwap(a),macdBuy=m.hist>0&&m.hist>=m.previous,macdSell=m.hist<0&&m.hist<=m.previous;
- const higherTrend=higher.length>=15?supertrend(higher).direction:0;
+ const higherTrend=higher.length>=60?supertrend(higher).direction:0;
  const mtfBuy=higherTrend===1,mtfSell=higherTrend===-1;
  // Daily VWAP is session based; avoid applying it as a strict daily signal filter.
  const useVwap=label!=='Next 1 Day';const vwBuy=!useVwap||(Number.isFinite(vw)&&p>vw),vwSell=!useVwap||(Number.isFinite(vw)&&p<vw);
@@ -100,8 +100,13 @@ function estimate(a,label,higher=[]){
  // not simultaneous hard gates (which almost never align on one closed candle).
  const buyScore=[buyTrend,r>=52&&r<=78,macdBuy,st.direction===1,vwBuy,mtfBuy,buyMomentum,buyBreak,volOk].filter(Boolean).length;
  const sellScore=[sellTrend,r<=48&&r>=22,macdSell,st.direction===-1,vwSell,mtfSell,sellMomentum,sellBreak,volOk].filter(Boolean).length;
- const buy=buyTrend&&buyMomentum&&buyScore>=6&&buyScore>sellScore+1;
- const sell=sellTrend&&sellMomentum&&sellScore>=6&&sellScore>buyScore+1;
+ // Directional agreement is mandatory for intraday trades, not merely a score bonus.
+ // Daily signals have no weekly history in this build, so require their own Supertrend.
+ const higherRequired=label!=='Next 1 Day';
+ const directionalBuy=st.direction===1&&(!higherRequired||mtfBuy);
+ const directionalSell=st.direction===-1&&(!higherRequired||mtfSell);
+ const buy=buyTrend&&buyMomentum&&directionalBuy&&buyScore>=6&&buyScore>sellScore+1;
+ const sell=sellTrend&&sellMomentum&&directionalSell&&sellScore>=6&&sellScore>buyScore+1;
  const sig=buy?'BUY':sell?'SELL':'WAIT',entry=sig==='WAIT'?NaN:p,sl=buy?p-1.5*v:sell?p+1.5*v:NaN,t1=buy?p+3*v:sell?p-3*v:NaN,t2=buy?p+4.5*v:sell?p-4.5*v:NaN;
  const checks=[['EMA trend',buyTrend?'BUY':sellTrend?'SELL':'NEUTRAL'],['RSI (14)',r.toFixed(1)],['MACD (12,26,9)',Number.isFinite(m.hist)?(m.hist>0?'Bullish ':'Bearish ')+fmt(m.hist):'Unavailable'],['Supertrend (10,3)',st.direction===1?'Bullish':st.direction===-1?'Bearish':'Unavailable'],['VWAP (UTC session)',useVwap?(Number.isFinite(vw)?fmt(vw)+(p>vw?' · Above':' · Below'):'Unavailable'):'Not used on 1D'],['Higher timeframe confirmation',higherTrend===1?'Bullish':higherTrend===-1?'Bearish':'Not enough higher-TF candles'],['Breakout',buyBreak?'UP':sellBreak?'DOWN':'NONE'],['Volume confirmation',volOk?'YES':'NO'],['ATR (14)',fmt(v)],['Support / Resistance',fmt(support)+' / '+fmt(resist)],['Momentum',buyMomentum?'Positive':sellMomentum?'Negative':'Flat'],['Confirmation score',`BUY ${buyScore}/9 · SELL ${sellScore}/9 (minimum 6)`]];
  return {label,sig,entry,sl,t1,t2,methods:checks,reason:sig==='WAIT'?`WAIT: BUY ${buyScore}/9 · SELL ${sellScore}/9; needs trend + momentum + 6 checks`:`Indicator confirmation: ${sig==='BUY'?buyScore:sellScore}/9 on closed candles. Not a guarantee`};
@@ -155,10 +160,10 @@ function setupGate(known,tf,decisionTime,signal){
  if(signal!=='BUY'&&signal!=='SELL')return {ok:false,reason:'No indicator confirmation'};
  const pa=advancedRead(known,tf,decisionTime);
  const bullish=signal==='BUY';
- const structureOK=pa.ready && (bullish?!pa.structure.includes('Bearish'):!pa.structure.includes('Bullish'));
+ const structureOK=pa.ready && (bullish?pa.structure.includes('Bullish'):pa.structure.includes('Bearish'));
  const actionOK=pa.ready && (bullish?(pa.ssl||pa.change.includes('Bullish')||pa.action==='Bullish engulfing'||pa.action==='Lower-wick rejection'):(pa.bsl||pa.change.includes('Bearish')||pa.action==='Bearish engulfing'||pa.action==='Upper-wick rejection'));
  const vol=atr(known),closes=known.map(b=>b.c),e20=ema(closes,20),e50=ema(closes,50),last=known.at(-1);
- const regimeOK=Number.isFinite(vol)&&vol>0&&Number.isFinite(e50)&&Math.abs(e20-e50)>=vol*.12&&Math.abs(last.c-last.o)<=vol*2.5;
+ const regimeOK=Number.isFinite(vol)&&vol>0&&Number.isFinite(e50)&&Math.abs(e20-e50)>=vol*.12&&Math.abs(last.c-last.o)<=vol*2.5&&(bullish?(e20>e50&&last.c>e20):(e20<e50&&last.c<e20));
  return {ok:structureOK&&actionOK&&regimeOK,structureOK,actionOK,regimeOK,vol,
   reason:!pa.ready?'Insufficient closed candles for price action':!structureOK?'Structure conflict':!actionOK?'No sweep / break / rejection confirmation':!regimeOK?'Weak trend or extreme volatility':'Confirmed candle-based setup'};
 }
@@ -199,6 +204,10 @@ function analysis(){
       previous={...r,key,start,expires,created:now, symbol:sym};
       fixedSignals[key]=previous;
       if((r.sig==='BUY'||r.sig==='SELL')&&Number.isFinite(r.sl)&&source==='LIVE'&&!records.some(x=>recordKey(x)===recordKey(previous))){records.push({symbol:sym,key,start,expires,created:now,sig:r.sig,entry:r.entry,sl:r.sl,t1:r.t1,t2:r.t2,outcome:'OPEN'});records=records.slice(-500);persist();updateHistory()}
+    }
+    // A locked setup is not permission to trade when data quality degrades.
+    if(previous.sig!=='WAIT' && !(source==='LIVE' && socket && socket.readyState===1 && now-lastTick<30000)){
+      return {...previous,sig:'WAIT',entry:NaN,sl:NaN,t1:NaN,t2:NaN,reason:'WAIT: live feed disconnected; previous setup suspended'};
     }
     return previous;
   });
@@ -508,7 +517,7 @@ function renderCandlePatterns(){const tf=$('patternTf').value,a=patternData(tf),
  const fresh=Date.now()-(last.t+patternMs[tf])<=patternMs[tf]*2;
  summary.textContent=`${tf} · ${a.length} CLOSED candles · EMA trend: ${trend} · Last 3 candles: ${buy} bullish / ${sell} bearish pattern(s) · ${fresh?'Recent candles':'Historical / delayed candles'} · ${source==='LIVE'?'Crypto stream connected':'Not verified live'} · Pattern detection is NOT a BUY/SELL order. WAIT until independent confirmation.`;
  if(!latest.length)cards.append(makeNode('div','advanced-box','No recognized pattern in the last 3 closed candles / ಇತ್ತೀಚೆಗೆ ಪ್ಯಾಟರ್ನ್ ಇಲ್ಲ. WAIT.'));
- for(const item of latest.slice(0,12)){const [name,side]=patternNames[item.key],box=makeNode('div','advanced-box');box.style.borderColor=side==='BUY'?'#187d64':side==='SELL'?'#a74c55':'#6b7180';box.append(makeNode('h3','',`${side==='BUY'?'🟢':side==='SELL'?'🔴':'🟡'} ${name}`));box.append(makeNode('p','',`Candle: ${new Date(item.t).toLocaleString()} · Close ${fmt(item.price)}`));box.append(makeNode('p','',`Context: ${trend} · ${side==='NEUTRAL'?'Indecision':side==='BUY'?'Potential bullish setup':'Potential bearish setup'}`));box.append(makeNode('p','advanced-warning','⚠ Confirmation required: support/resistance + next closed candle + risk/reward. Not a guaranteed entry.'));cards.append(box)}
+ for(const item of latest.slice(0,12)){const [name,side]=patternNames[item.key],box=makeNode('div','advanced-box');box.style.borderColor=side==='BUY'?'#187d64':side==='SELL'?'#a74c55':'#6b7180';box.append(makeNode('h3','',`${side==='BUY'?'🟢 Bullish pattern':side==='SELL'?'🔴 Bearish pattern':'🟡 Neutral pattern'} · ${name}`));box.append(makeNode('p','',`Candle: ${new Date(item.t).toLocaleString()} · Close ${fmt(item.price)}`));box.append(makeNode('p','',`Context: ${trend} · ${side==='NEUTRAL'?'Indecision':side==='BUY'?'Potential bullish reversal (NOT confirmed BUY)':'Potential bearish reversal (NOT confirmed SELL)'}`));box.append(makeNode('p','advanced-warning','⚠ Confirmation required: support/resistance + next closed candle + risk/reward. Not a guaranteed entry.'));cards.append(box)}
  const table=document.createElement('table'),thead=document.createElement('thead');thead.innerHTML='<tr><th>Closed candle</th><th>Pattern</th><th>Side</th><th>Close</th></tr>';table.append(thead);const tbody=document.createElement('tbody');for(const item of found.slice(-25).reverse()){const row=document.createElement('tr');for(const v of [new Date(item.t).toLocaleString(),patternNames[item.key][0],patternNames[item.key][1],fmt(item.price)]){const td=document.createElement('td');td.textContent=v;row.append(td)}tbody.append(row)}table.append(tbody);hist.append(makeNode('h3','','Recent detected patterns / ಇತ್ತೀಚಿನ ಪ್ಯಾಟರ್ನ್ಸ್'));hist.append(table);
 }
 $('patternRefresh').onclick=renderCandlePatterns;$('patternTf').onchange=renderCandlePatterns;renderCandlePatterns();
